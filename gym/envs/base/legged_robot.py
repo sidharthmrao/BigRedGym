@@ -212,6 +212,14 @@ class LeggedRobot(BaseTask):
             (self.num_envs, 1),
             device=self.device,
         ).squeeze(1)
+        if self.commands.shape[1] == 4:
+            height_min, height_max = self.command_ranges["base_height"]
+            candidate[:, 3] = torch_rand_float(
+                height_min,
+                height_max,
+                (self.num_envs, 1),
+                device=self.device,
+            ).squeeze(1)
 
         # set small commands to zero
         small_commands = torch.norm(candidate[:, :2], dim=1) <= 0.2
@@ -430,7 +438,10 @@ class LeggedRobot(BaseTask):
             self.num_envs, self.num_actuators * 3, dtype=torch.float, device=self.device
         )
         self.commands = torch.zeros(
-            self.num_envs, 3, dtype=torch.float, device=self.device
+            self.num_envs,
+            getattr(self.cfg.commands, "num_commands", 3),
+            dtype=torch.float,
+            device=self.device,
         )
         self.base_lin_vel = quat_rotate_inverse(
             self.base_quat, self.root_states[:, 7:10]

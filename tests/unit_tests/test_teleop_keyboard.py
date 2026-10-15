@@ -229,6 +229,35 @@ def test_commands_clamp_at_limits():
     assert env.commands[0, 0].item() >= cmds.max_vel_backward - 1e-6
 
 
+def test_height_arrows_change_only_go2trot_height_command():
+    from gym.envs.go2.go2trot_config import Go2TrotCfg
+
+    env = FakeEnv()
+    env.commands = torch.zeros(2, 4)
+    env.cfg.commands = Go2TrotCfg.commands
+    cmds = TeleopCommands(env)
+    assert env.commands[:, 3].tolist() == pytest.approx([0.4, 0.4])
+    assert torch.equal(env.commands[:, :3], torch.zeros(2, 3))
+
+    cmds.apply("up")
+    assert env.commands[:, 3].tolist() == pytest.approx([0.42, 0.42])
+    for _ in range(100):
+        cmds.apply("down")
+    assert env.commands[:, 3].tolist() == pytest.approx([0.25, 0.25])
+    for _ in range(100):
+        cmds.apply("up")
+    assert env.commands[:, 3].tolist() == pytest.approx([0.45, 0.45])
+
+
+def test_height_arrows_leave_three_command_tasks_unchanged():
+    env = FakeEnv()
+    cmds = TeleopCommands(env)
+    before = env.commands.clone()
+    cmds.apply("up")
+    cmds.apply("down")
+    assert torch.equal(env.commands, before)
+
+
 # ── Viewer UI panels (MuJoCo) ────────────────────────────────────────────
 
 

@@ -24,7 +24,7 @@ natural U/O pair collides with vsim's step toggle:
      N M             N / M   yaw left / right
                      R       reset envs
                      Esc     quit (or close the window)
-                     Up/Down up / down (command effects: student TODO)
+                     Up/Down desired height (Go2Trot)
 
 GLFW (MuJoCo) uses ASCII codes for letter keys, so `ord(letter)` is the
 keycode. Each viewer adapter translates named special keys such as UP/DOWN
@@ -53,10 +53,10 @@ HELP_LINES = (
     "  I/K           forward / back",
     "  J/L           strafe left / strafe right",
     "  N/M           yaw left / yaw right",
-    "  Up/Down       up / down (command effects: student TODO)",
+    "  Up/Down       raise / lower desired height (Go2Trot)",
     "  R             reset envs",
     "  Esc / window  quit",
-    "  commands step in 1/5 increments of max",
+    "  each press changes one command step",
 )
 
 
@@ -80,7 +80,13 @@ class TeleopCommands:
         self.increment_yaw = self.max_vel_yaw * 0.2
 
         env.commands[:] = 0.0
-        env.commands[:, 0] = 1.0  # seed forward velocity so motion is visible
+        self.has_height_command = env.commands.shape[1] == 4
+        if self.has_height_command:
+            self.min_height, self.max_height = env.cfg.commands.ranges.base_height
+            self.increment_height = (self.max_height - self.min_height) * 0.1
+            env.commands[:, 3] = env.cfg.commands.default_height
+        else:
+            env.commands[:, 0] = 1.0  # Seed forward velocity for legacy tasks
         if hasattr(env.cfg, "commands"):
             env.cfg.commands.resampling_time = env.max_episode_length_s + 1
 
@@ -101,6 +107,18 @@ class TeleopCommands:
             c[:, 2] = torch.clamp(c[:, 2] + self.increment_yaw, max=self.max_vel_yaw)
         elif action == "yaw_right":
             c[:, 2] = torch.clamp(c[:, 2] - self.increment_yaw, min=-self.max_vel_yaw)
+
+        elif action == "up":
+            if self.has_height_command:
+                c[:, 3] = torch.clamp(
+                    c[:, 3] + self.increment_height, max=self.max_height
+                )
+        elif action == "down":
+            if self.has_height_command:
+                c[:, 3] = torch.clamp(
+                    c[:, 3] - self.increment_height, min=self.min_height
+                )
+
         elif action == "reset":
             self.env.timed_out[:] = True
             self.env.reset()
@@ -111,5 +129,7 @@ class TeleopCommands:
         print("______________________________________________________________")
         print(f"Keyboard teleop ({viewer_name})")
         for line in HELP_LINES:
+            if line.startswith("  Up/Down") and not self.has_height_command:
+                continue
             print(line)
         print("______________________________________________________________")

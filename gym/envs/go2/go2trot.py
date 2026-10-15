@@ -135,7 +135,7 @@ class Go2Trot(LeggedRobot):
             drop = command_mask.unsqueeze(1) & (
                 torch.rand(self.num_envs, 1, device=self.device) >= 0.8
             )
-            self.commands[:, 1:].masked_fill_(drop, 0.0)
+            self.commands[:, 1:3].masked_fill_(drop, 0.0)
             drop = command_mask.unsqueeze(1) & (
                 torch.rand(self.num_envs, 1, device=self.device) >= 0.8
             )
@@ -143,7 +143,7 @@ class Go2Trot(LeggedRobot):
             drop = command_mask.unsqueeze(1) & (
                 torch.rand(self.num_envs, 1, device=self.device) >= 0.9
             )
-            self.commands.masked_fill_(drop, 0.0)
+            self.commands[:, :3].masked_fill_(drop, 0.0)
 
     def _reset_idx(self, reset_mask):
         super()._reset_idx(reset_mask)
@@ -218,11 +218,11 @@ class Go2Trot(LeggedRobot):
         )
         return torch.sum(torch.exp(-error), dim=1)
 
-    def _reward_min_base_height(self):
-        """Squared exponential saturating at base_height target"""
-        error = self.base_height - self.cfg.reward_settings.base_height_target
-        error /= self.scales["base_height"]
-        error = torch.clamp(error, max=0, min=None).flatten()
+    def _reward_tracking_base_height(self):
+        """Reward matching the requested base height from either direction."""
+        error = (self.base_height[:, 0] - self.commands[:, 3]) / self.scales[
+            "base_height"
+        ]
         return self._sqrdexp(error)
 
     def _reward_tracking_lin_vel(self):

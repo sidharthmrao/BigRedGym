@@ -59,10 +59,13 @@ class Go2TrotCfg(Go2Cfg):
         gait_joint_amplitudes = 4 * [0.0, -0.15, 0.30]
 
     class commands(Go2Cfg.commands):
+        num_commands = 4  # x velocity, y velocity, yaw velocity, desired base height
+        default_height = Go2Cfg.reward_settings.base_height_target
         var = 1.0
 
         class ranges(Go2Cfg.commands.ranges):
             lin_vel_x = [-1.0, 0.0, 1.0, 3.0]
+            base_height = [0.25, 0.45]  # metres, sampled during training
 
     class push_robots(Go2Cfg.push_robots):
         toggle = True
@@ -97,6 +100,7 @@ class Go2TrotCfg(Go2Cfg):
         # Canonical RobotLayout order is FL, FR, RL, RR, with
         # hip, thigh, calf inside each leg. Backends map native order to it.
         base_height = 0.3
+        commands = [3, 1, 3, 0.4]
         dof_pos = 4 * [1.0472, 2.53075, 0.94247]
         dof_pos_obs = dof_pos
         dof_pos_target = [0.5 * x for x in dof_pos]
@@ -165,7 +169,7 @@ class Go2TrotRunnerCfg(Go2RunnerCfg):
                 dof_pos_limits = 0.0
                 feet_contact_forces = 0.0
                 dof_near_home = 0.0
-                min_base_height = 0.5
+                tracking_base_height = 1.5
                 action_rate = 0.25
                 action_rate2 = 0.025
                 trot_support = 0.625

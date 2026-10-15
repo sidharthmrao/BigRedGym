@@ -37,12 +37,13 @@ class DeployConfig:
         "lin_vel_y": 1.0,  # m/s
         "yaw_vel": 3.0,  # rad/s
     }
+    default_height_command = Go2TrotCfg.commands.default_height
 
     # Specify size of observation vector. should not have to modify this
     obs_sizes = {
         "base_ang_vel": 3,
         "projected_gravity": 3,
-        "commands": 3,
+        "commands": 4,
         "dof_pos_obs": 12,
         "dof_vel": 12,
         "dof_accel": 12,

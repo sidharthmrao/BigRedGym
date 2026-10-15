@@ -32,7 +32,7 @@ def _controller(cfg=None):
     return SimpleNamespace(
         cfg=cfg,
         obs_vec_size=sum(cfg.obs_sizes[name] for name in cfg.obs_vector),
-        last_command=torch.tensor([0.5, -0.25, 0.75]),
+        last_command=torch.tensor([0.5, -0.25, 0.75, 0.4]),
         last_action=torch.zeros(2, 12),
         phase=0.4,
         _gait_reference=torch.linspace(-0.3, 0.3, 12),
@@ -102,7 +102,7 @@ def test_observation_dispatch_preserves_configured_order_sizes_and_scaling():
         dof_vel=2.0,
         base_ang_vel=0.5,
         dof_pos_target=0.25,
-        commands=[2.0, 4.0, 8.0],
+        commands=[2.0, 4.0, 8.0, 0.5],
         projected_gravity=2.0,
         dof_pos_obs=list(range(1, 13)),
         dof_accel=3.0,
@@ -117,7 +117,7 @@ def test_observation_dispatch_preserves_configured_order_sizes_and_scaling():
             -ordered,
             torch.tensor([0.2, -0.4, 0.6]),
             controller.last_action[0] / 0.25,
-            torch.tensor([0.25, -0.0625, 0.09375]),
+            torch.tensor([0.25, -0.0625, 0.09375, 0.8]),
             torch.tensor([0.0, -0.5, 0.0]),
             ordered / torch.arange(1, 13),
             ordered,
@@ -256,7 +256,7 @@ def test_deploy_observations_match_cpu_task_at_100hz(include_applied_action):
             actual = deploy_utility.lowstate_to_obs(controller, message)
             expected = env.get_states(deploy_cfg.obs_vector)[0]
 
-            expected_size = 48 if include_applied_action else 36
+            expected_size = 49 if include_applied_action else 37
             assert actual.shape == expected.shape == (expected_size,)
             torch.testing.assert_close(actual, expected, atol=3e-6, rtol=2e-5)
     finally:

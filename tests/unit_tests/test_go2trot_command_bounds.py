@@ -55,6 +55,33 @@ def _reference(task):
     return reference + task.default_dof_pos[:, task.actuated_dof_indices]
 
 
+def test_height_command_resampling_keeps_stopped_samples_valid(task, monkeypatch):
+    # Force every optional velocity drop. Height must remain a sampled command.
+    monkeypatch.setattr(
+        torch, "rand", lambda *args, **kwargs: torch.ones(*args, **kwargs)
+    )
+    task._resample_commands(torch.ones(task.num_envs, dtype=torch.bool))
+    assert task.commands.shape == (2, 4)
+    assert torch.equal(task.commands[:, :3], torch.zeros(2, 3))
+    low, high = task.cfg.commands.ranges.base_height
+    assert torch.all((task.commands[:, 3] >= low) & (task.commands[:, 3] <= high))
+
+
+def test_height_reward_tracks_requested_height_on_both_sides(task):
+    task.commands[:, 3] = torch.tensor([0.35, 0.45])
+    task.base_height[:, 0] = task.commands[:, 3]
+    torch.testing.assert_close(task._reward_tracking_base_height(), torch.ones(2))
+
+    task.base_height[:, 0] = task.commands[:, 3] + torch.tensor([-0.05, 0.05])
+    actual = task._reward_tracking_base_height()
+    expected = torch.exp(
+        -torch.square(torch.tensor(0.05) / task.scales["base_height"])
+        / task.cfg.reward_settings.tracking_sigma
+    )
+    torch.testing.assert_close(actual, expected.expand(2))
+    assert torch.all(actual < 1)
+
+
 def test_full_position_commands_reach_both_limits_with_nonzero_reference(task):
     limits = task.dof_pos_limits[task.actuated_dof_indices]
     reference = _reference(task)
