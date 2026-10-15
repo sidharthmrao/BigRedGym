@@ -97,6 +97,13 @@ class Go2Trot(LeggedRobot):
             torques, -self.actuated_torque_limits, self.actuated_torque_limits
         ).view(self.torques.shape)
 
+    def reset_to_basic(self, reset_mask):
+        """Start at the standing reference used by zero policy action."""
+        super().reset_to_basic(reset_mask)
+        standing_pos = self.default_dof_pos.clone()
+        standing_pos[:, self.actuated_dof_indices] += self._gait_joint_offsets
+        masked_update(self.dof_pos, standing_pos, reset_mask)
+
     def _reset_system(self, reset_mask):
         super()._reset_system(reset_mask)
         phase = torch_rand_float(
@@ -160,6 +167,20 @@ class Go2Trot(LeggedRobot):
             max=1.0,
         )
         return load.square() * (3.0 - 2.0 * load)
+
+    def _reward_standing_foot_contact(self):
+        """Reward an upright stance supported by all four feet."""
+        foot_force_z = self.contact_forces[:, self.feet_indices, 2].clamp(min=0.0)
+        nominal_foot_load = (
+            9.81
+            * self._backend.link_mass.sum(dim=1, keepdim=True)
+            / self.feet_indices.numel()
+        )
+        # Half the nominal load counts as firm contact; use the least loaded
+        # foot so lifting any one foot reduces the standing reward.
+        foot_support = (foot_force_z / (0.5 * nominal_foot_load)).clamp(max=1.0)
+        upright = (-self.projected_gravity[:, 2]).clamp(min=0.0, max=1.0)
+        return foot_support.amin(dim=1) * upright
 
     def _reward_trot_support(self):
         """Require both feet in the scheduled trot diagonal to support the body."""

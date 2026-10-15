@@ -6,8 +6,8 @@ class Go2TrotCfg(Go2Cfg):
         episode_length_s = 5
 
     class init_state(Go2Cfg.init_state):
-        # The gait reference supplies the nominal posture; residual targets
-        # therefore use zero joint offsets here.
+        # Keep policy residuals relative to zero. Go2Trot.reset_to_basic
+        # adds the standing reference when placing the joints at reset.
         default_joint_angles = {
             "hip_joint": 0.0,
             "calf_joint": 0.0,
@@ -17,6 +17,7 @@ class Go2TrotCfg(Go2Cfg):
             "RR_thigh_joint": 0.0,
         }
         reset_mode = "reset_to_basic"
+        pos = [0.0, 0.0, 0.32]  # standing reference places all four feet on the floor
 
         root_pos_range = [
             [0.0, 0.0],  # x
@@ -66,7 +67,7 @@ class Go2TrotCfg(Go2Cfg):
             lin_vel_x = [0.0, 0.0]
             lin_vel_y = 0.0
             yaw_vel = 0.0
-            base_height = [0.05, 0.7]  # metres, sampled during training
+            base_height = [0.3, 0.6]  # metres, sampled during training
 
     class push_robots(Go2Cfg.push_robots):
         toggle = False
@@ -167,6 +168,7 @@ class Go2TrotRunnerCfg(Go2RunnerCfg):
                 feet_contact_forces = 0.0
                 dof_near_home = 0.0
                 tracking_base_height = 4.0
+                standing_foot_contact = 1.0
                 action_rate = 0.25
                 action_rate2 = 0.025
                 trot_support = 0.0

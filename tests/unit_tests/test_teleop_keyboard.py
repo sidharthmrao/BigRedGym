@@ -248,10 +248,10 @@ def test_height_arrows_change_only_go2trot_height_command(capsys):
     assert torch.equal(env.commands[:, :3], torch.zeros(2, 3))
     for _ in range(100):
         cmds.apply("down")
-    assert env.commands[:, 3].tolist() == pytest.approx([0.05, 0.05])
+    assert env.commands[:, 3].tolist() == pytest.approx([0.3, 0.3])
     for _ in range(100):
         cmds.apply("up")
-    assert env.commands[:, 3].tolist() == pytest.approx([0.7, 0.7])
+    assert env.commands[:, 3].tolist() == pytest.approx([0.6, 0.6])
 
 
 def test_height_arrows_leave_three_command_tasks_unchanged():
