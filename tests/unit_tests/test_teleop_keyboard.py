@@ -58,6 +58,7 @@ class FakeEnv:
 
     def __init__(self, num_envs=2):
         self.commands = torch.zeros(num_envs, 3)
+        self.base_height = torch.zeros(num_envs, 1)
         self.timed_out = torch.zeros(num_envs, dtype=torch.bool)
         self.max_episode_length_s = 10.0
         self.cfg = type("cfg", (), {})()
@@ -229,7 +230,7 @@ def test_commands_clamp_at_limits():
     assert env.commands[0, 0].item() >= cmds.max_vel_backward - 1e-6
 
 
-def test_height_arrows_change_only_go2trot_height_command():
+def test_height_arrows_change_only_go2trot_height_command(capsys):
     from gym.envs.go2.go2trot_config import Go2TrotCfg
 
     env = FakeEnv()
@@ -241,12 +242,16 @@ def test_height_arrows_change_only_go2trot_height_command():
 
     cmds.apply("up")
     assert env.commands[:, 3].tolist() == pytest.approx([0.42, 0.42])
+    assert "Target height: 0.420 m | Current height: 0.000 m" in capsys.readouterr().out
+    for action in ("forward", "back", "strafe_left", "yaw_right"):
+        cmds.apply(action)
+    assert torch.equal(env.commands[:, :3], torch.zeros(2, 3))
     for _ in range(100):
         cmds.apply("down")
-    assert env.commands[:, 3].tolist() == pytest.approx([0.25, 0.25])
+    assert env.commands[:, 3].tolist() == pytest.approx([0.05, 0.05])
     for _ in range(100):
         cmds.apply("up")
-    assert env.commands[:, 3].tolist() == pytest.approx([0.45, 0.45])
+    assert env.commands[:, 3].tolist() == pytest.approx([0.7, 0.7])
 
 
 def test_height_arrows_leave_three_command_tasks_unchanged():

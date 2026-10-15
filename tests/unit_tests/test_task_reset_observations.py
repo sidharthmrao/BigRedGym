@@ -81,8 +81,18 @@ def _expected_base_state(env):
     }
 
 
-def test_runner_observations_include_current_gait_phase_and_frequency(task):
+def test_standing_policy_observations_ignore_gait_phase(task):
     env, runner_cfg, _ = task
+    for names, size in (
+        (runner_cfg.actor.obs, 46),
+        (runner_cfg.critic.obs, 50),
+    ):
+        assert "phase_obs" not in names
+        assert "phase_frequency" not in names
+        assert env.get_states(names).shape == (env.num_envs, size)
+
+    before_actor = env.get_states(runner_cfg.actor.obs).clone()
+    before_critic = env.get_states(runner_cfg.critic.obs).clone()
     env.phase[:] = torch.tensor(
         [[0.0], [math.pi / 2], [math.pi], [3 * math.pi / 2]],
         device=env.device,
@@ -91,20 +101,8 @@ def test_runner_observations_include_current_gait_phase_and_frequency(task):
         [[1.0], [1.5], [2.0], [3.0]], device=env.device
     )
     env._update_phase_observation()
-
-    for _ in range(2):
-        expected = torch.cat(
-            (torch.sin(env.phase), torch.cos(env.phase), env.phase_frequency),
-            dim=-1,
-        )
-        for names, size in (
-            (runner_cfg.actor.obs, 48),
-            (runner_cfg.critic.obs, 52),
-        ):
-            observation = env.get_states(names)
-            assert observation.shape == (env.num_envs, size)
-            torch.testing.assert_close(observation[:, -3:], expected)
-        env.step()
+    torch.testing.assert_close(env.get_states(runner_cfg.actor.obs), before_actor)
+    torch.testing.assert_close(env.get_states(runner_cfg.critic.obs), before_critic)
 
 
 @pytest.mark.parametrize("reset_mode", ("reset_to_basic", "reset_to_range"))

@@ -6,6 +6,7 @@ from go2_deploy.state import State
 from go2_deploy.rl_controller import RLController
 from go2_deploy.unitree_remote_controller import UnitreeRemoteController, RCHandler
 from go2_deploy.deploy_config import DeployConfig
+from gym.envs.go2.go2trot_config import Go2TrotCfg
 from go2_deploy.utility import deploy_utility
 from go2_deploy.utility.csv_logger import CSVLogger
 from go2_deploy.utility.thread import RecurrentThread
@@ -108,8 +109,10 @@ class MainController:
         self._gait_reference = torch.zeros(12)
         self._gait_phase_offsets = torch.tensor([0, math.pi, math.pi, 0])
         self._gait_dof_phase_offsets = self._gait_phase_offsets.repeat_interleave(3)
-        self._gait_joint_offsets = torch.tensor(4 * [0.0, 0.96, -1.36])
-        self._gait_joint_amplitudes = torch.tensor(4 * [0.0, -0.15, 0.30])
+        self._gait_joint_offsets = torch.tensor(Go2TrotCfg.control.gait_joint_offsets)
+        self._gait_joint_amplitudes = torch.tensor(
+            Go2TrotCfg.control.gait_joint_amplitudes
+        )
 
     # Unitree SDK pub/sub clients
     def _init_unitree_clients(self):
@@ -180,9 +183,9 @@ class MainController:
         with self.last_command_lock:
             self.last_command = torch.tensor(
                 [
-                    self.remote_controller.lin_vel_x,
-                    self.remote_controller.lin_vel_y,
-                    self.remote_controller.yaw_vel,
+                    0.0,
+                    0.0,
+                    0.0,
                     self.cfg.default_height_command,
                 ]
             )

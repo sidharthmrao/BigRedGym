@@ -26,6 +26,12 @@ SDK_JOINT_NAMES = [
 SDK_IN_QGYM_ORDER = [3, 4, 5, 0, 1, 2, 9, 10, 11, 6, 7, 8]
 
 
+def test_standing_deploy_observations_match_actor_layout():
+    cfg = DeployConfig()
+    assert cfg.obs_vector == Go2TrotRunnerCfg.actor.obs
+    assert cfg.obs_sizes["commands"] == Go2TrotCfg.commands.num_commands
+
+
 def _controller(cfg=None):
     if cfg is None:
         cfg = DeployConfig()

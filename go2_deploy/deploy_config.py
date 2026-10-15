@@ -10,7 +10,7 @@ class DeployConfig:
     kp = 30.0  # Stiffness constant
     kd = 2.0  # Damping constant
 
-    phase_frequency = 2.0  # for go2trot env
+    phase_frequency = 0.0  # no gait cycle for standing height control
 
     # Apply exponential moving average to actions
     exp_moving_avg = True
@@ -23,8 +23,6 @@ class DeployConfig:
         "dof_pos_obs",
         "dof_vel",
         "dof_pos_target",
-        "phase_obs",
-        "phase_frequency",
     ]  # add later? foot contact
 
     # Scale observations

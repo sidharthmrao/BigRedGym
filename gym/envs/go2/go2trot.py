@@ -115,35 +115,15 @@ class Go2Trot(LeggedRobot):
         masked_update(self.phase_frequency, phase_frequency, reset_mask)
 
     def _resample_commands(self, command_mask):
-        super()._resample_commands(command_mask)
-
-        forward_commands = torch.tensor(
-            self.command_ranges["lin_vel_x"], device=self.device
-        )
-        command_indices = torch.randint(
-            len(forward_commands),
+        height_min, height_max = self.command_ranges["base_height"]
+        height = torch_rand_float(
+            height_min,
+            height_max,
             (self.num_envs,),
             device=self.device,
         )
-        forward = forward_commands[command_indices] + (
-            torch.randn(self.num_envs, device=self.device) * self.cfg.commands.var
-        )
-        masked_update(self.commands[:, 0], forward, command_mask)
-
-        if 0 in self.cfg.commands.ranges.lin_vel_x:
-            # Include forward-only, rotation-only, and stopped examples.
-            drop = command_mask.unsqueeze(1) & (
-                torch.rand(self.num_envs, 1, device=self.device) >= 0.8
-            )
-            self.commands[:, 1:3].masked_fill_(drop, 0.0)
-            drop = command_mask.unsqueeze(1) & (
-                torch.rand(self.num_envs, 1, device=self.device) >= 0.8
-            )
-            self.commands[:, :2].masked_fill_(drop, 0.0)
-            drop = command_mask.unsqueeze(1) & (
-                torch.rand(self.num_envs, 1, device=self.device) >= 0.9
-            )
-            self.commands[:, :3].masked_fill_(drop, 0.0)
+        self.commands[command_mask, :3] = 0.0
+        masked_update(self.commands[:, 3], height, command_mask)
 
     def _reset_idx(self, reset_mask):
         super()._reset_idx(reset_mask)

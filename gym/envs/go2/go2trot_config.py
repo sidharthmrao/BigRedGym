@@ -27,9 +27,9 @@ class Go2TrotCfg(Go2Cfg):
             [0.0, 0.0],  # yaw
         ]
         root_vel_range = [
-            [-0.5, 3.0],  # x
-            [-0.1, 0.1],  # y
-            [-0.05, 0.05],  # z
+            [0.0, 0.0],  # x
+            [0.0, 0.0],  # y
+            [0.0, 0.0],  # z
             [0.0, 0.0],  # roll
             [0.0, 0.0],  # pitch
             [0.0, 0.0],  # yaw
@@ -40,7 +40,7 @@ class Go2TrotCfg(Go2Cfg):
         damping = {"hip": 0.5, "thigh": 0.5, "calf": 0.5}
         ctrl_frequency = 100
         desired_sim_frequency = 100
-        gait_freq = [1.0, 3.0]  # oscillator frequency range [Hz]
+        gait_freq = [0.0, 0.0]  # no gait cycle for standing height control
         # Cycle offsets define a trot: front-left/rear-right move together,
         # half a cycle away from front-right/rear-left.
         gait_phase_offsets = {
@@ -52,23 +52,24 @@ class Go2TrotCfg(Go2Cfg):
         # Canonical order is FL, FR, RL, RR; hip, thigh, calf within each leg.
         # q_ref = offset + amplitude * sin(phase + leg_phase).
         # These are relative PD targets; LeggedRobot adds default_dof_pos.
-        # The thigh/calf amplitudes approximately preserve fore-aft foot
-        # position while alternately extending the stance diagonal and
-        # shortening the swing diagonal.
+        # Keep a fixed standing posture while the policy adjusts base height.
         gait_joint_offsets = 4 * [0.0, 0.96, -1.36]
-        gait_joint_amplitudes = 4 * [0.0, -0.15, 0.30]
+        gait_joint_amplitudes = 12 * [0.0]
 
     class commands(Go2Cfg.commands):
         num_commands = 4  # x velocity, y velocity, yaw velocity, desired base height
+        height_only = True
         default_height = Go2Cfg.reward_settings.base_height_target
-        var = 1.0
+        height_step = 0.02
 
         class ranges(Go2Cfg.commands.ranges):
-            lin_vel_x = [-1.0, 0.0, 1.0, 3.0]
-            base_height = [0.25, 0.45]  # metres, sampled during training
+            lin_vel_x = [0.0, 0.0]
+            lin_vel_y = 0.0
+            yaw_vel = 0.0
+            base_height = [0.05, 0.7]  # metres, sampled during training
 
     class push_robots(Go2Cfg.push_robots):
-        toggle = True
+        toggle = False
         interval_s = 5
 
     class domain_randomization(Go2Cfg.domain_randomization):
@@ -119,8 +120,6 @@ class Go2TrotRunnerCfg(Go2RunnerCfg):
             "dof_pos_obs",
             "dof_vel",
             "dof_pos_target",
-            "phase_obs",
-            "phase_frequency",
         ]
         normalize_obs = False
         smooth_exploration = False
@@ -151,15 +150,13 @@ class Go2TrotRunnerCfg(Go2RunnerCfg):
             "dof_pos_obs",
             "dof_vel",
             "dof_pos_target",
-            "phase_obs",
-            "phase_frequency",
         ]
         normalize_obs = False
 
         class reward:
             class weights:
-                tracking_lin_vel = 4.0
-                tracking_ang_vel = 2.0
+                tracking_lin_vel = 2.0  # zero-command station keeping
+                tracking_ang_vel = 1.0  # keep yaw stationary
                 lin_vel_z = 0.0
                 ang_vel_xy = 0.01
                 orientation = 1.0
@@ -169,11 +166,11 @@ class Go2TrotRunnerCfg(Go2RunnerCfg):
                 dof_pos_limits = 0.0
                 feet_contact_forces = 0.0
                 dof_near_home = 0.0
-                tracking_base_height = 1.5
+                tracking_base_height = 4.0
                 action_rate = 0.25
                 action_rate2 = 0.025
-                trot_support = 0.625
-                swing_contact = 1.25
+                trot_support = 0.0
+                swing_contact = 0.0
 
             class termination_weight:
                 termination = 0.01

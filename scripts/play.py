@@ -132,13 +132,25 @@ def setup(args):
 
 def play(env, runner):
     n_steps = 10 * int(env.max_episode_length)
-    for _ in range(n_steps):
+    height_print_interval = max(1, round(1.0 / env.dt))
+    for step in range(n_steps):
         runner.set_actions(
             runner.actor_cfg["actions"],
             runner.get_inference_actions(),
             runner.actor_cfg["disable_actions"],
         )
         env.step()
+        if (
+            hasattr(env, "commands")
+            and hasattr(env, "base_height")
+            and env.commands.shape[1] == 4
+            and step % height_print_interval == 0
+        ):
+            print(
+                f"Target height: {env.commands[0, 3].item():.3f} m | "
+                f"Current height: {env.base_height[0, 0].item():.3f} m",
+                flush=True,
+            )
         env.check_exit()
 
 

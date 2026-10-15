@@ -55,16 +55,22 @@ def _reference(task):
     return reference + task.default_dof_pos[:, task.actuated_dof_indices]
 
 
-def test_height_command_resampling_keeps_stopped_samples_valid(task, monkeypatch):
-    # Force every optional velocity drop. Height must remain a sampled command.
-    monkeypatch.setattr(
-        torch, "rand", lambda *args, **kwargs: torch.ones(*args, **kwargs)
-    )
+def test_height_command_resampling_keeps_velocity_zero(task):
     task._resample_commands(torch.ones(task.num_envs, dtype=torch.bool))
     assert task.commands.shape == (2, 4)
     assert torch.equal(task.commands[:, :3], torch.zeros(2, 3))
     low, high = task.cfg.commands.ranges.base_height
     assert torch.all((task.commands[:, 3] >= low) & (task.commands[:, 3] <= high))
+
+
+def test_standing_reference_does_not_cycle_with_gait_phase(task):
+    task.phase[:] = torch.tensor([[0.0], [torch.pi / 2]])
+    task._update_gait_reference()
+    expected = torch.tensor(task.cfg.control.gait_joint_offsets).expand(2, -1)
+    torch.testing.assert_close(task.gait_reference, expected)
+    assert task.cfg.push_robots.toggle is False
+    assert task.cfg.commands.ranges.yaw_vel == 0.0
+    assert task.cfg.commands.ranges.lin_vel_y == 0.0
 
 
 def test_height_reward_tracks_requested_height_on_both_sides(task):
