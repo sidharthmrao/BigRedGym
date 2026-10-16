@@ -67,7 +67,7 @@ class Go2TrotCfg(Go2Cfg):
             lin_vel_x = [0.0, 0.0]
             lin_vel_y = 0.0
             yaw_vel = 0.0
-            base_height = [0.3, 0.6]  # metres, sampled during training
+            base_height = [0.15, 0.6]  # metres, sampled during training
 
     class push_robots(Go2Cfg.push_robots):
         toggle = False
